@@ -10,49 +10,57 @@ import './AnalysisResults.css';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const AnalysisResults = ({ data }) => {
-   const [detailsText, setDetailsText] = useState(data?.details || '');
-   const [generating, setGenerating] = useState(false);
-   const [coordinates, setCoordinates] = useState(null);
-   const [geocoding, setGeocoding] = useState(false);
+  const [detailsText, setDetailsText] = useState(data?.details || '');
+  const [generating, setGenerating] = useState(false);
+  const [coordinates, setCoordinates] = useState(null);
+  const [geocoding, setGeocoding] = useState(false);
 
-   useEffect(() => {
-     if (data?.location) {
-       setGeocoding(true);
-       // Check if location is coordinates
-       const coordMatch = data.location.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
-       if (coordMatch) {
-         const lat = parseFloat(coordMatch[1]);
-         const lng = parseFloat(coordMatch[2]);
-         if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-           setCoordinates({ lat, lng });
-           setGeocoding(false);
-           return;
-         }
-       }
-       // Geocode place name
-       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(data.location)}`)
-         .then(res => res.json())
-         .then(results => {
-           if (results && results.length > 0) {
-             const { lat, lon } = results[0];
-             setCoordinates({ lat: parseFloat(lat), lng: parseFloat(lon) });
-           } else {
-             setCoordinates(null);
-           }
-         })
-         .catch(err => {
-           console.error('Geocoding error:', err);
-           setCoordinates(null);
-         })
-         .finally(() => setGeocoding(false));
-     } else {
-       setCoordinates(null);
-     }
-   }, [data?.location]);
+  useEffect(() => {
+    // Priority 1: Direct coordinates from backend analysis
+    if (data?.coordinates && data.coordinates.lat && data.coordinates.lng) {
+      setCoordinates(data.coordinates);
+      setGeocoding(false);
+      return;
+    }
+
+    // Priority 2: Parse string coordinates from location field
+    if (data?.location) {
+      setGeocoding(true);
+      const coordMatch = data.location.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
+      if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lng = parseFloat(coordMatch[2]);
+        if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          setCoordinates({ lat, lng });
+          setGeocoding(false);
+          return;
+        }
+      }
+
+      // Priority 3: Geocode place name
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(data.location)}`)
+        .then(res => res.json())
+        .then(results => {
+          if (results && results.length > 0) {
+            const { lat, lon } = results[0];
+            setCoordinates({ lat: parseFloat(lat), lng: parseFloat(lon) });
+          } else {
+            setCoordinates(null);
+          }
+        })
+        .catch(err => {
+          console.error('Geocoding error:', err);
+          setCoordinates(null);
+        })
+        .finally(() => setGeocoding(false));
+    } else {
+      setCoordinates(null);
+    }
+  }, [data?.location, data?.coordinates]);
 
   if (!data) {
     return (
-      <motion.div 
+      <motion.div
         className="analysis-results no-data"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -68,27 +76,33 @@ const AnalysisResults = ({ data }) => {
 
   const generatePDF = async () => {
     const element = document.getElementById('analysis-content');
-    const canvas = await html2canvas(element);
+    const canvas = await html2canvas(element, {
+      useCORS: true,
+      scale: 2, // Better resolution
+      logging: true,
+      allowTaint: false,
+      backgroundColor: '#1a202c', // Match the dark theme background roughly or transparent
+    });
     const imgData = canvas.toDataURL('image/png');
-    
+
     const pdf = new jsPDF();
     const imgWidth = 210;
     const pageHeight = 295;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     let heightLeft = imgHeight;
-    
+
     let position = 0;
-    
+
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
-    
+
     while (heightLeft >= 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
     }
-    
+
     pdf.save('sand-grain-analysis.pdf');
   };
 
@@ -365,7 +379,7 @@ const AnalysisResults = ({ data }) => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="analysis-results"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -377,7 +391,7 @@ const AnalysisResults = ({ data }) => {
 
       <div id="analysis-content" className="analysis-content">
         {data.image && (
-          <motion.div 
+          <motion.div
             className="image-section"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -406,29 +420,39 @@ const AnalysisResults = ({ data }) => {
             </div>
             <div className="stat-card">
               <h3>Dominant Size</h3>
-                <p className="stat-value">{data.dominantSize || 'Medium'}</p>
+              <p className="stat-value">{data.dominantSize || 'Medium'}</p>
             </div>
             <div className="stat-card">
               <h3>Sample Quality</h3>
               <p className="stat-value">{data.quality || 'Good'}</p>
             </div>
           </div>
-          {data.location && (
-            <div className="location-display">
-              <h3>Sample Location</h3>
-              <p className="location-value">{data.location}</p>
-              {geocoding && <p>Geocoding location...</p>}
-              {coordinates && (
-                <div className="location-map">
-                  <Map locations={[{ coordinates, location: data.location, soil: data.soilType || 'Unknown' }]} />
-                </div>
-              )}
-              {!geocoding && !coordinates && <p>Location could not be pinpointed on map.</p>}
+          <div className="location-display">
+            <h3>Regional & Sample Location</h3>
+            {data.location ? (
+              <>
+                <p className="location-value">Sample: {data.location}</p>
+                {geocoding && <p>Geocoding location...</p>}
+                {!geocoding && !coordinates && <p>Sample location could not be pinpointed.</p>}
+              </>
+            ) : (
+              <p className="location-value">Regional Hub: PSGR</p>
+            )}
+
+            <div className="location-map">
+              <Map locations={[
+                ...(coordinates ? [{ coordinates, location: data.location, soil: data.soilType || 'Unknown' }] : []),
+                {
+                  coordinates: { lat: 11.0247, lng: 76.9723 },
+                  location: 'PSGR (Regional Hub)',
+                  soil: 'Most found in region'
+                }
+              ]} />
             </div>
-          )}
+          </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           className="chart-section"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -441,7 +465,7 @@ const AnalysisResults = ({ data }) => {
         </motion.div>
 
         {(detailsText || data.details) && (
-          <motion.div 
+          <motion.div
             className="details-section"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -449,24 +473,24 @@ const AnalysisResults = ({ data }) => {
           >
             <h2>Detailed Analysis</h2>
             <div className="details-content">
-                  <div className="report-output">{renderReport(detailsText || data.details)}</div>
-                  {data.soilType && (
-                    <div className="soil-summary">
-                      <h4>Soil Type:</h4>
-                      <p><strong>{data.soilType}</strong></p>
-                      {data.soilDetails && (
-                        <>
-                          <h4>Soil Details:</h4>
-                          <p>{data.soilDetails}</p>
-                        </>
-                      )}
-                    </div>
+              <div className="report-output">{renderReport(detailsText || data.details)}</div>
+              {data.soilType && (
+                <div className="soil-summary">
+                  <h4>Soil Type:</h4>
+                  <p><strong>{data.soilType}</strong></p>
+                  {data.soilDetails && (
+                    <>
+                      <h4>Soil Details:</h4>
+                      <p>{data.soilDetails}</p>
+                    </>
                   )}
-              <div style={{marginTop:12}}>
+                </div>
+              )}
+              <div style={{ marginTop: 12 }}>
                 <button className="generate-btn" onClick={generateDetailedReport} disabled={generating}>
                   {generating ? 'Generating...' : 'Generate Detailed Report'}
                 </button>
-                <button className="export-btn" onClick={generatePDF} style={{marginLeft:12}}>
+                <button className="export-btn" onClick={generatePDF} style={{ marginLeft: 12 }}>
                   Export PDF
                 </button>
               </div>

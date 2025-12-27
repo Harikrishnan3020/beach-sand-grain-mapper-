@@ -19,7 +19,8 @@ app.post('/api/gemini', async (req, res) => {
     if (!API_KEY) return res.status(500).json({ error: 'Server missing GEMINI API key' });
 
     // Call Google Generative API (Gemini)
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${API_KEY}`;
+    // Switching to dynamically verified working model
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
     const body = {
       contents: [{
@@ -28,8 +29,8 @@ app.post('/api/gemini', async (req, res) => {
         }]
       }],
       generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 512,
+        temperature: 0.7,
+        maxOutputTokens: 4096,
       }
     };
 
@@ -40,8 +41,10 @@ app.post('/api/gemini', async (req, res) => {
     const output = gres.data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
     return res.json({ output });
   } catch (err) {
-    console.error('Gemini proxy error', err?.response?.data || err.message || err);
-    console.error(err.stack || err);
+    console.error('Gemini proxy error:', err.message);
+    if (err.response) {
+      console.error('Response data:', JSON.stringify(err.response.data, null, 2));
+    }
     return res.status(500).json({ error: 'Failed to call Gemini API', details: err?.response?.data || err.message });
   }
 });
@@ -94,36 +97,77 @@ app.post('/api/analyze', async (req, res) => {
     const soilKey = soilKeyRaw.split(/[,;|]/)[0].split(/\s+/)[0];
     const soilDetails = soilDetailsMap[soilKey] || null;
 
-    const summaryPrompt = `You are a geological assistant. Provide a detailed analysis of a sand sample.
-Location: ${location || 'Unknown'}
-Filename: ${filename || 'uploaded_image'}
-SoilType: ${soilType || 'Unknown'}
-KnownSoilDetails: ${soilDetails || 'None'}
-Stats: totalGrains=${totalGrains}, averageSize=${averageSize}μm, sizeBuckets=${JSON.stringify(sizes)} with counts=${JSON.stringify(counts)}.
-Describe likely depositional environment, grain sorting, probable uses, and any notable observations.`;
+    const summaryPrompt = `You are a geological assistant. Analyze the provided image of a soil/sand sample.
+    Input metadata:
+    Location provided by user: ${location || 'Unknown'}
+    Filename: ${filename || 'uploaded_image'}
+    SoilType provided by user: ${soilType || 'Unknown'}
+    
+    Task:
+    1. Identify the likely soil type and characteristics from the image.
+    2. Estimate the likely geographical region or specific location type where this soil is found (e.g., "River Ganges banks", "Thar Desert", "Red soil region of Tamil Nadu"). If the user provided a location, verify if it matches the visual evidence.
+    3. Generate specific approximate coordinates (latitude, longitude) for a representative location of this soil type. If specific location is unknown, choose a representative coordinate for the region.
+    4. Analyze the grain statistics provided locally: totalGrains=${totalGrains}, averageSize=${averageSize}μm.
+
+    Output Format:
+    Return pure JSON with the following structure (no markdown formatting):
+    {
+      "analysisText": "Detailed textual analysis...",
+      "estimatedLocation": "Name of the estimated location/region",
+      "coordinates": { "lat": 12.34, "lng": 56.78 },
+      "soilType": "Identified soil type",
+      "details": "Additional geological details..."
+    }`;
 
     // Call Gemini proxy internally
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
     const body = {
       contents: [{
-        parts: [{
-          text: summaryPrompt
-        }]
+        parts: [
+          { text: summaryPrompt },
+          { inline_data: { mime_type: "image/jpeg", data: image.split(',')[1] } }
+        ]
       }],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 512,
+        maxOutputTokens: 1024,
       }
     };
 
-    let output = 'No detailed analysis available.';
+    let outputText = 'No detailed analysis available.';
+    let estimatedLocation = null;
+    let estimatedCoordinates = null;
+    let identifiedSoilType = soilType;
+
     try {
+      // Note: In a real app, we should start the backend with the image data properly attached. 
+      // Current implementation in server.js lines 14-47 suggests a simple text prompt capability, 
+      // but here we are in the /analyze endpoint which receives the image base64.
+      // We need to pass the image to Gemini.
+
       const gres = await axios.post(url, body, { headers: { 'Content-Type': 'application/json' } });
-      output = gres.data?.candidates?.[0]?.content?.parts?.[0]?.text || output;
+      const candidate = gres.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (candidate) {
+        // specific cleaning for JSON
+        const jsonStr = candidate.replace(/```json/g, '').replace(/```/g, '').trim();
+        try {
+          const parsed = JSON.parse(jsonStr);
+          outputText = parsed.analysisText || parsed.details || outputText;
+          estimatedLocation = parsed.estimatedLocation || estimatedLocation;
+          estimatedCoordinates = parsed.coordinates || null;
+          identifiedSoilType = parsed.soilType || identifiedSoilType;
+        } catch (e) {
+          console.log("Failed to parse JSON from Gemini, using raw text", e);
+          outputText = candidate;
+        }
+      }
     } catch (apiErr) {
-      console.error('Gemini call failed, falling back to local summary', apiErr?.response?.data || apiErr.message || apiErr);
-      // Fallback summary if Gemini is unavailable
-      output = `Fallback analysis: The sample (approx avg size ${averageSize}μm) appears moderately sorted with mixed grain sizes. Likely depositional environment: fluvial or beach; suitable for general geotechnical uses. (Gemini service unavailable)`;
+      console.error('Gemini Vision call failed:', apiErr.message);
+      if (apiErr.response) {
+        console.error('Vision Response data:', JSON.stringify(apiErr.response.data, null, 2));
+      }
+      // Fallback
     }
 
     const analysis = {
@@ -135,11 +179,12 @@ Describe likely depositional environment, grain sorting, probable uses, and any 
       quality: 'Good',
       grainSizes: sizes,
       grainCounts: counts,
-      details: output,
-      soilType: soilType || null,
+      details: outputText,
+      soilType: identifiedSoilType || null,
       soilDetails: soilDetails,
       timestamp: new Date().toISOString(),
-      location: location || null,
+      location: location || estimatedLocation || null,
+      coordinates: estimatedCoordinates
     };
 
     return res.json(analysis);

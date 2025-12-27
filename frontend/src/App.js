@@ -6,6 +6,7 @@ import ImageUpload from './components/ImageUpload';
 import CameraCapture from './components/CameraCapture';
 import AnalysisResults from './components/AnalysisResults';
 import Navigation from './components/Navigation';
+import VoiceAssistant from './components/VoiceAssistant';
 import './App.css';
 
 function App() {
@@ -32,22 +33,23 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route 
-              path="/upload" 
-              element={<ImageUpload setAnalysisData={setAnalysisData} />} 
+            <Route
+              path="/upload"
+              element={<ImageUpload setAnalysisData={setAnalysisData} />}
             />
-            <Route 
-              path="/camera" 
-              element={<CameraCapture setAnalysisData={setAnalysisData} />} 
+            <Route
+              path="/camera"
+              element={<CameraCapture setAnalysisData={setAnalysisData} />}
             />
-            <Route 
-              path="/results" 
-              element={<AnalysisResults data={analysisData} />} 
+            <Route
+              path="/results"
+              element={<AnalysisResults data={analysisData} />}
             />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+        <VoiceAssistant />
       </div>
     </Router>
   );
