@@ -1,7 +1,7 @@
-
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const FormData = require('form-data');
 require('dotenv').config();
 
 const app = express();
@@ -9,49 +9,219 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 const PORT = process.env.PORT || 8000;
-const API_KEY = process.env.GEMINI_API_KEY || process.env.GENERATIVE_API_KEY;
+
+// Collect and deduplicate API keys
+const rawKeys = [
+  process.env.GEMINI_API_KEY,
+  process.env.GEMINI_API_KEY_SECONDARY,
+  process.env.GENERATIVE_API_KEY
+];
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+const API_KEYS = rawKeys
+  .map(k => k ? k.split(',') : [])
+  .flat()
+  .map(k => k.trim())
+  .filter(k => k.length > 0);
+
+const UNIQUE_KEYS = [...new Set(API_KEYS)];
+
+console.log(`Loaded ${UNIQUE_KEYS.length} unique API keys.`);
+
+if (UNIQUE_KEYS.length === 0) {
+  console.warn("WARNING: No valid GEMINI_API_KEY found. Requests will fail.");
+}
+
+/**
+ * Helper to execute a Google Gemini API request with key failover strategy.
+ * @param {Function} urlBuilder - Function that takes a key and returns the URL.
+ * @param {Object} data - Request body.
+ * @param {Object} config - Axios config (headers, etc).
+ */
+async function executeGeminiRequest(urlBuilder, data, config = {}) {
+  let lastError = null;
+
+  for (const key of UNIQUE_KEYS) {
+    const url = urlBuilder(key);
+    try {
+      const response = await axios.post(url, data, config);
+      return response;
+    } catch (err) {
+      lastError = err;
+      const status = err.response?.status;
+
+      // If it's a key-related error (400 often "API key not valid", 401, 403) or Rate Limit (429)
+      // We try the next key.
+      if (status === 400 || status === 401 || status === 403 || status === 429 || status >= 500) {
+        console.warn(`Attempt with key ...${key.slice(-4)} failed (Status ${status}). Switching key...`);
+        continue;
+      }
+
+      console.warn(`Request failed with non-retriable error: ${status || err.message}`);
+      throw err;
+    }
+  }
+  throw lastError || new Error("All API keys failed.");
+}
 
 app.post('/api/gemini', async (req, res) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-    if (!API_KEY) return res.status(500).json({ error: 'Server missing GEMINI API key' });
+    if (UNIQUE_KEYS.length === 0) return res.status(500).json({ error: 'Server missing GEMINI API keys' });
 
     // Call Google Generative API (Gemini)
-    // Switching to dynamically verified working model
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+    const models = [
+      'gemini-flash-latest',
+      'gemini-2.0-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-pro-latest'
+    ];
 
-    const body = {
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 4096,
-      }
+    let queryOutput = null;
+
+    // Helper to try a model
+    const tryModel = async (modelName, promptText) => {
+      const body = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+      };
+
+      console.log(`Trying model: ${modelName}...`);
+
+      const response = await executeGeminiRequest(
+        (key) => `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`,
+        body,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+
+      return response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
     };
 
-    const gres = await axios.post(url, body, {
-      headers: { 'Content-Type': 'application/json' }
+    // Iterate through models
+    for (const model of models) {
+      try {
+        queryOutput = await tryModel(model, prompt);
+        if (queryOutput) {
+          console.log(`Success with ${model}`);
+          break;
+        }
+      } catch (err) {
+        console.warn(`Model ${model} failed across all keys: ${err.message}`);
+        // If 429 persist even across all keys (unlikely unless IP ban), check
+        if (err.response && err.response.status === 429) {
+          console.log("Waiting 2s...");
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        continue;
+      }
+    }
+
+    if (!queryOutput) {
+      throw new Error("All models and keys failed to generate content.");
+    }
+
+    return res.json({ output: queryOutput });
+  } catch (err) {
+    console.error('All Gemini attempts failed:', err.message);
+    return res.status(500).json({ error: 'Failed to call Gemini API', details: err?.response?.data || err.message });
+  }
+});
+
+// Voice Chat Endpoint: Audio -> Groq Transcription -> Gemini Response
+app.post('/api/voice-chat', async (req, res) => {
+  try {
+    const { audio } = req.body;
+    if (!audio) return res.status(400).json({ error: 'Missing audio data' });
+    if (!GROQ_API_KEY) return res.status(500).json({ error: 'GROQ_API_KEY missing on server' });
+
+    // 1. Prepare Audio for Groq
+    // Expecting base64 string, possibly with data URI prefix
+    const base64Data = audio.includes(',') ? audio.split(',')[1] : audio;
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    const form = new FormData();
+    // Filename helps Groq identify format. Defaulting to wav/webm generic.
+    form.append('file', buffer, { filename: 'input.webm', contentType: 'audio/webm' });
+    form.append('model', 'distil-whisper-large-v3-en');
+    form.append('response_format', 'json');
+
+    console.log("Sending audio to Groq for transcription...");
+
+    // 2. Call Groq
+    let transcription = '';
+    try {
+      const groqRes = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', form, {
+        headers: {
+          ...form.getHeaders(),
+          'Authorization': `Bearer ${GROQ_API_KEY}`
+        }
+      });
+      transcription = groqRes.data.text;
+      console.log(`Groq Transcription: "${transcription}"`);
+    } catch (groqErr) {
+      console.error("Groq Transcription failed:", groqErr.message);
+      if (groqErr.response) console.error(groqErr.response.data);
+      return res.status(500).json({ error: 'Transcription failed', details: groqErr.message });
+    }
+
+    if (!transcription || transcription.trim().length === 0) {
+      return res.json({ transcription: '', reply: 'Sorry, I could not understand the audio.' });
+    }
+
+    // 3. Call Gemini with the transcription
+    const models = [
+      'gemini-flash-latest',
+      'gemini-2.0-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-pro-latest'
+    ];
+
+    let geminiReply = null;
+
+    const tryModel = async (modelName, promptText) => {
+      const body = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+      };
+      const response = await executeGeminiRequest(
+        (key) => `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`,
+        body,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      return response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    };
+
+    for (const model of models) {
+      try {
+        geminiReply = await tryModel(model, transcription);
+        if (geminiReply) break;
+      } catch (err) {
+        console.warn(`Model ${model} failed in voice chat: ${err.message}`);
+        continue;
+      }
+    }
+
+    if (!geminiReply) throw new Error("Failed to get response from Gemini after transcription.");
+
+    return res.json({
+      transcription,
+      reply: geminiReply
     });
 
-    const output = gres.data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-    return res.json({ output });
   } catch (err) {
-    console.error('Gemini proxy error:', err.message);
-    if (err.response) {
-      console.error('Response data:', JSON.stringify(err.response.data, null, 2));
-    }
-    return res.status(500).json({ error: 'Failed to call Gemini API', details: err?.response?.data || err.message });
+    console.error('Voice Chat Error:', err.message);
+    res.status(500).json({ error: 'Voice chat processing failed', details: err.message });
   }
 });
 
 // Simple health endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
+  res.json({ status: 'ok', time: new Date().toISOString(), activeKeys: UNIQUE_KEYS.length });
 });
 
 // Analyze endpoint: accepts image (data URL) and optional location, returns structured analysis
@@ -97,30 +267,38 @@ app.post('/api/analyze', async (req, res) => {
     const soilKey = soilKeyRaw.split(/[,;|]/)[0].split(/\s+/)[0];
     const soilDetails = soilDetailsMap[soilKey] || null;
 
-    const summaryPrompt = `You are a geological assistant. Analyze the provided image of a soil/sand sample.
+    const summaryPrompt = `You are a geological assistant. Analyze the provided image of a soil/sand sample to generate a comprehensive report.
     Input metadata:
     Location provided by user: ${location || 'Unknown'}
     Filename: ${filename || 'uploaded_image'}
-    SoilType provided by user: ${soilType || 'Unknown'}
     
     Task:
-    1. Identify the likely soil type and characteristics from the image.
-    2. Estimate the likely geographical region or specific location type where this soil is found (e.g., "River Ganges banks", "Thar Desert", "Red soil region of Tamil Nadu"). If the user provided a location, verify if it matches the visual evidence.
-    3. Generate specific approximate coordinates (latitude, longitude) for a representative location of this soil type. If specific location is unknown, choose a representative coordinate for the region.
-    4. Analyze the grain statistics provided locally: totalGrains=${totalGrains}, averageSize=${averageSize}μm.
+    1. Identify the likely soil type, color, texture, and grain characteristics.
+    2. Estimate the likely geographical region or specific location type.
+    3. Generate specific approximate coordinates (latitude, longitude) for a representative location.
+    4. **CRITICAL**: Identify 5 REAL-WORLD LOCATIONS (Global or Regional) where this specific sand/soil type is highly abundant and famous.
+    5. List "Most Important Features".
+    6. Generate a "Detailed Analysis".
 
     Output Format:
-    Return pure JSON with the following structure (no markdown formatting):
+    Return pure JSON with the following structure (no markdown code blocks):
     {
-      "analysisText": "Detailed textual analysis...",
+      "soilType": "Identified soil type",
       "estimatedLocation": "Name of the estimated location/region",
       "coordinates": { "lat": 12.34, "lng": 56.78 },
-      "soilType": "Identified soil type",
-      "details": "Additional geological details..."
+      "likelyLocations": [
+        {"name": "Location Name 1", "coordinates": {"lat": 0, "lng": 0}},
+        {"name": "Location Name 2", "coordinates": {"lat": 0, "lng": 0}},
+        {"name": "Location Name 3", "coordinates": {"lat": 0, "lng": 0}},
+        {"name": "Location Name 4", "coordinates": {"lat": 0, "lng": 0}},
+        {"name": "Location Name 5", "coordinates": {"lat": 0, "lng": 0}}
+      ],
+      "keyFeatures": "List of most important features (bullet points as text, no markdown tables)",
+      "analysisText": "Detailed textual analysis covering origin, composition, and engineering properties. Write at least 150 words. Do NOT use markdown headers or tables."
     }`;
 
-    // Call Gemini proxy internally
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+    // Call Gemini with failover
+    // Using gemini-2.5-flash since 1.5 is standard
     const body = {
       contents: [{
         parts: [
@@ -129,8 +307,8 @@ app.post('/api/analyze', async (req, res) => {
         ]
       }],
       generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 1024,
+        temperature: 0.3, // Lower temperature for more structured JSON
+        maxOutputTokens: 2000,
       }
     };
 
@@ -138,36 +316,48 @@ app.post('/api/analyze', async (req, res) => {
     let estimatedLocation = null;
     let estimatedCoordinates = null;
     let identifiedSoilType = soilType;
+    let likelyLocations = [];
 
     try {
-      // Note: In a real app, we should start the backend with the image data properly attached. 
-      // Current implementation in server.js lines 14-47 suggests a simple text prompt capability, 
-      // but here we are in the /analyze endpoint which receives the image base64.
-      // We need to pass the image to Gemini.
+      const gres = await executeGeminiRequest(
+        (key) => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+        body,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
 
-      const gres = await axios.post(url, body, { headers: { 'Content-Type': 'application/json' } });
       const candidate = gres.data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (candidate) {
-        // specific cleaning for JSON
-        const jsonStr = candidate.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Robust cleaning: remove markdown code blocks
+        let jsonStr = candidate;
+        // Remove ```json ... ``` or just ``` ... ```
+        jsonStr = jsonStr.replace(/```json/gi, '').replace(/```/g, '').trim();
+
         try {
           const parsed = JSON.parse(jsonStr);
-          outputText = parsed.analysisText || parsed.details || outputText;
           estimatedLocation = parsed.estimatedLocation || estimatedLocation;
           estimatedCoordinates = parsed.coordinates || null;
           identifiedSoilType = parsed.soilType || identifiedSoilType;
+          likelyLocations = parsed.likelyLocations || [];
+
+          // Construct the final details text from the structured JSON
+          // User requested "Most Important Features" and "More Content" and "Remove #"
+          const features = parsed.keyFeatures || 'Feature analysis pending.';
+          const mainText = parsed.analysisText || parsed.details || 'Analysis pending.';
+
+          outputText = `**Most Important Features**\n${features}\n\n**Detailed Analysis**\n${mainText}`;
+
+          // Final cleanup of any lingering markdown headers just in case
+          outputText = outputText.replace(/#{1,6}\s?/g, '').trim();
+
         } catch (e) {
           console.log("Failed to parse JSON from Gemini, using raw text", e);
-          outputText = candidate;
+          // If JSON parse fails, attempt to strip potential raw formatting
+          outputText = candidate.replace(/```json/gi, '').replace(/```/g, '').replace(/[\{\}]/g, '').trim();
         }
       }
     } catch (apiErr) {
-      console.error('Gemini Vision call failed:', apiErr.message);
-      if (apiErr.response) {
-        console.error('Vision Response data:', JSON.stringify(apiErr.response.data, null, 2));
-      }
-      // Fallback
+      console.error('Gemini Vision call failed across all keys:', apiErr.message);
     }
 
     const analysis = {
@@ -181,6 +371,7 @@ app.post('/api/analyze', async (req, res) => {
       grainCounts: counts,
       details: outputText,
       soilType: identifiedSoilType || null,
+      likelyLocations,
       soilDetails: soilDetails,
       timestamp: new Date().toISOString(),
       location: location || estimatedLocation || null,
@@ -190,7 +381,6 @@ app.post('/api/analyze', async (req, res) => {
     return res.json(analysis);
   } catch (err) {
     console.error('Analyze error', err?.response?.data || err.message || err);
-    console.error(err.stack || err);
     return res.status(500).json({ error: 'Failed to analyze image', details: err?.response?.data || err.message });
   }
 });
