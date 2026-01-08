@@ -153,3 +153,17 @@
     font-size: 1.5rem;
   }
 }
+
+.role-selection {
+  margin-top: 15px;
+}
+
+.role-options {
+  display: flex;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.role-options input {
+  margin-right: 6px;
+}

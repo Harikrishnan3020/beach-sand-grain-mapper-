@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import './Login.css';
 
+const ADMIN_EMAILS = ['abc@gmail.com', 'admin@sandgrain.com'];
+
 // Simulate Google OAuth user data
-const mockGoogleUsers = [
+/*const mockGoogleUsers = [
   { email: 'john.doe@gmail.com', name: 'John Doe', picture: 'https://via.placeholder.com/40' },
   { email: 'jane.smith@gmail.com', name: 'Jane Smith', picture: 'https://via.placeholder.com/40' },
   { email: 'mike.johnson@gmail.com', name: 'Mike Johnson', picture: 'https://via.placeholder.com/40' },
   { email: 'sarah.wilson@gmail.com', name: 'Sarah Wilson', picture: 'https://via.placeholder.com/40' }
-];
+];*/
 
 const Login = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -16,44 +18,52 @@ const Login = ({ onLogin }) => {
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [role, setRole] = useState('User'); // default User
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setTimeout(() => {
+          setIsLoading(false);
+    // Load existing users
+          const existingUsers = JSON.parse(localStorage.getItem('sgm_users')) || [];
 
-    // Simulate Google OAuth authentication
-    setTimeout(() => {
-      setIsLoading(false);
-      // Find or create user based on email
-      const existingUser = mockGoogleUsers.find(user => user.email === formData.email);
-      const userData = existingUser || {
-        email: formData.email,
-        name: formData.email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        picture: 'https://via.placeholder.com/40'
+    // Decide role
+          const role = ADMIN_EMAILS.includes(formData.email) ? 'Admin' : 'User';
+
+    // Check if user already exists
+          const userIndex = existingUsers.findIndex(
+            (u) => u.email === formData.email
+          );
+
+    // Create user object (DECLARE ONCE)
+          const currentUser = {
+            email: formData.email,
+            role,
+            loginTime: new Date().toLocaleString(),
+            analyses:
+            userIndex >= 0 ? existingUsers[userIndex].analyses || 0 : 0,
+            status: 'Active',
+          };
+
+    // Update users list
+          if (userIndex >= 0) {
+            existingUsers[userIndex] = {
+            ...existingUsers[userIndex],
+            ...currentUser,
+            };
+          } else {
+            existingUsers.push({ ...currentUser, id: Date.now() });
+          }
+
+    // Save to localStorage
+          localStorage.setItem('sgm_users', JSON.stringify(existingUsers));
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+    // Login
+          onLogin(currentUser);
+        }, 1500);
       };
-
-      // Store user data in localStorage
-      const currentUser = {
-        ...userData,
-        loginTime: new Date().toISOString(),
-        role: 'User',
-        analyses: 0,
-        status: 'Active'
-      };
-
-      // Update users list in localStorage
-      const existingUsers = JSON.parse(localStorage.getItem('sgm_users') || '[]');
-      const userIndex = existingUsers.findIndex(u => u.email === currentUser.email);
-      if (userIndex >= 0) {
-        existingUsers[userIndex] = { ...existingUsers[userIndex], ...currentUser };
-      } else {
-        existingUsers.push({ ...currentUser, id: Date.now() });
-      }
-      localStorage.setItem('sgm_users', JSON.stringify(existingUsers));
-
-      onLogin(currentUser);
-    }, 1500);
-  };
 
   const handleChange = (e) => {
     setFormData({
@@ -147,6 +157,33 @@ const Login = ({ onLogin }) => {
               whileFocus={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300 }}
             />
+          </div>
+
+          <div className="form-group role-selection">
+            <label>User Type</label>
+            <div className="role-options">
+              <label>
+                <input
+                  type="radio"
+                  name="role"
+                  value="User"
+                  checked={role === 'User'}
+                  onChange={() => setRole('User')}
+                />
+                User
+              </label>
+
+              <label style={{ marginLeft: '20px' }}>
+                <input
+                  type="radio"
+                  name="role"
+                  value="Admin"
+                  checked={role === 'Admin'}
+                  onChange={() => setRole('Admin')}
+                />
+                Admin
+              </label>
+            </div>
           </div>
 
           <motion.button
