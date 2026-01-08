@@ -66,6 +66,20 @@ const ImageUpload = ({ setAnalysisData }) => {
 
       const analysisResult = await response.json();
       setAnalysisData(analysisResult);
+
+      const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+      if (currentUser) {
+        currentUser.analyses = (currentUser.analyses || 0) + 1;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        const users = JSON.parse(localStorage.getItem('sgm_users') || '[]');
+        const index = users.findIndex(u => u.email === currentUser.email);
+
+        if (index !== -1) {
+          users[index].analyses = currentUser.analyses;
+          localStorage.setItem('sgm_users', JSON.stringify(users));
+        }
+      }
       navigate('/results');
     } catch (error) {
       console.error('Analysis error:', error);
