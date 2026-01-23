@@ -1,0 +1,180 @@
+.dashboard {
+  padding: 40px 0;
+}
+
+.features-section {
+  margin: 60px 0;
+}
+
+.features-section h2 {
+  text-align: center;
+  color: white;
+  font-size: 2.5rem;
+  margin-bottom: 40px;
+  font-weight: 700;
+}
+
+.feature-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.feature-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  border-color: rgba(102, 126, 234, 0.2);
+}
+
+.feature-card .feature-icon {
+  font-size: 3.5rem;
+  display: block;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.feature-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: #333;
+  text-align: center;
+  font-weight: 600;
+}
+
+.feature-card p {
+  color: #666;
+  line-height: 1.6;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.feature-arrow {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  font-size: 1.5rem;
+  color: #667eea;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover .feature-arrow {
+  opacity: 1;
+  transform: translateX(5px);
+}
+
+.applications-section {
+  margin: 60px 0;
+}
+
+.applications-section h2 {
+  font-size: 2rem;
+  margin-bottom: 30px;
+  color: #333;
+  text-align: center;
+}
+
+.applications-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.application-item {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.application-item:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.app-icon {
+  font-size: 2.5rem;
+  margin-right: 20px;
+  flex-shrink: 0;
+}
+
+.app-content h4 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 600;
+}
+
+.app-content p {
+  color: #666;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.info-section {
+  margin: 60px 0;
+}
+
+.info-section h2 {
+  font-size: 2rem;
+  margin-bottom: 30px;
+  color: #333;
+  text-align: center;
+}
+
+.features-list {
+  display: grid;
+  gap: 16px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+  background: #e9ecef;
+}
+
+.check-icon {
+  color: #28a745;
+  font-weight: bold;
+  margin-right: 16px;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .features-section h2 {
+    font-size: 2rem;
+  }
+  
+  .feature-card {
+    padding: 24px;
+  }
+  
+  .applications-grid {
+    gap: 16px;
+  }
+  
+  .application-item {
+    padding: 16px;
+  }
+  
+  .app-icon {
+    font-size: 2rem;
+    margin-right: 16px;
+  }
+}

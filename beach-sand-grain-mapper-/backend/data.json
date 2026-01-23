@@ -1,0 +1,139 @@
+{
+  "users": [
+    {
+      "email": "hari@gmail.com",
+      "name": "hari",
+      "picture": "https://via.placeholder.com/40",
+      "lastLogin": "2026-01-23T04:02:38.586Z",
+      "role": "User",
+      "status": "Active",
+      "id": 1769138734224,
+      "analyses": 1
+    },
+    {
+      "email": "fghj",
+      "name": "fghj",
+      "picture": "https://via.placeholder.com/40",
+      "lastLogin": "2026-01-23T04:01:12.705Z",
+      "role": "User",
+      "status": "Active",
+      "id": 1769140872706,
+      "analyses": 0
+    },
+    {
+      "email": "amin1",
+      "name": "amin1",
+      "picture": "https://via.placeholder.com/40",
+      "lastLogin": "2026-01-23T04:01:27.358Z",
+      "role": "User",
+      "status": "Active",
+      "id": 1769140887358,
+      "analyses": 0
+    },
+    {
+      "email": "24uam139ranjithk@soi.kgkite.ac.in",
+      "name": "24uam139ranjithk",
+      "picture": "https://via.placeholder.com/40",
+      "lastLogin": "2026-01-23T04:14:08.152Z",
+      "role": "User",
+      "status": "Active",
+      "id": 1769141648152,
+      "analyses": 1
+    },
+    {
+      "email": "24uam119harik@.soi.kgkite.ac.in",
+      "name": "24uam119harik",
+      "picture": "https://via.placeholder.com/40",
+      "lastLogin": "2026-01-23T05:04:14.308Z",
+      "role": "User",
+      "status": "Active",
+      "id": 1769144654308,
+      "analyses": 1
+    },
+    {
+      "email": "24uam119harik@soi.kgkite.ac.in",
+      "name": "24uam119harik",
+      "picture": "https://via.placeholder.com/40",
+      "lastLogin": "2026-01-23T05:19:25.414Z",
+      "role": "User",
+      "status": "Active",
+      "id": 1769145565414,
+      "analyses": 1
+    }
+  ],
+  "activities": [
+    {
+      "id": 1769140983269,
+      "user": "hari@gmail.com",
+      "type": "Upload",
+      "timestamp": "2026-01-23T04:03:03.269Z",
+      "status": "Success",
+      "grains": 143,
+      "details": {
+        "location": "",
+        "soilType": "",
+        "coordinates": null,
+        "filename": "sand img.jpeg"
+      }
+    },
+    {
+      "id": 1769141679056,
+      "user": "24uam139ranjithk@soi.kgkite.ac.in",
+      "type": "Upload",
+      "timestamp": "2026-01-23T04:14:39.056Z",
+      "status": "Success",
+      "grains": 226,
+      "details": {
+        "location": "",
+        "soilType": "",
+        "coordinates": null,
+        "filename": "sand img.jpeg"
+      }
+    },
+    {
+      "id": 1769144698645,
+      "user": "24uam119harik@.soi.kgkite.ac.in",
+      "type": "Upload",
+      "timestamp": "2026-01-23T05:04:58.645Z",
+      "status": "Success",
+      "grains": 123,
+      "details": {
+        "location": "",
+        "soilType": "",
+        "coordinates": null,
+        "filename": "sand.jpeg",
+        "report": "**Most Important Soil Features**\n1. Grain Size & Texture: Determines water retention and drainage capabilities essential for agriculture and construction.\n2. Mineral Composition: Indicates the geological origin (e.g., quartz, feldspar) and chemical stability.\n3. pH & Fertility: Chemical properties that dictate suitability for different types of vegetation or crops.\n4. Permeability & Porosity: Critical for groundwater movement and foundation stability in engineering.\n5. Regional Significance: Reflects the local sedimentary environment and climatic history of the area.\n\n**Detailed Analysis**\n(Automated analysis could not be completed at this time. Please retry for live AI insights.)"
+      }
+    },
+    {
+      "id": 1769145599034,
+      "user": "24uam119harik@soi.kgkite.ac.in",
+      "type": "Upload",
+      "timestamp": "2026-01-23T05:19:59.034Z",
+      "status": "Success",
+      "grains": 187,
+      "details": {
+        "location": "",
+        "soilType": "",
+        "coordinates": null,
+        "image": "data:image/jpeg;base64,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",
+        "grainSizes": [
+          100,
+          200,
+          300,
+          400,
+          500
+        ],
+        "grainCounts": [
+          42,
+          50,
+          62,
+          14,
+          31
+        ],
+        "filename": "sand.jpeg",
+        "report": "**Most Important Soil Features**\n1. Grain Size & Texture: Determines water retention and drainage capabilities essential for agriculture and construction.\n2. Mineral Composition: Indicates the geological origin (e.g., quartz, feldspar) and chemical stability.\n3. pH & Fertility: Chemical properties that dictate suitability for different types of vegetation or crops.\n4. Permeability & Porosity: Critical for groundwater movement and foundation stability in engineering.\n5. Regional Significance: Reflects the local sedimentary environment and climatic history of the area.\n\n**Detailed Analysis**\n(Automated analysis could not be completed at this time. Please retry for live AI insights.)"
+      }
+    }
+  ]
+}
