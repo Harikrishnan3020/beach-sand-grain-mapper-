@@ -433,34 +433,44 @@ app.post('/api/analyze', async (req, res) => {
     const soilKey = soilKeyRaw.split(/[,;|]/)[0].split(/\s+/)[0];
     const soilDetails = soilDetailsMap[soilKey] || null;
 
-    const summaryPrompt = `You are a geological assistant. Analyze the provided image of a soil/sand sample to generate a comprehensive report.
+    const summaryPrompt = `You are an expert Geological Analyst using advanced microscopy references. Analyze the provided image of a soil/sand sample to generate a highly detailed, professional scientific report.
+
     Input metadata:
     Location provided by user: ${location || 'Unknown'}
     Filename: ${filename || 'uploaded_image'}
-    
+
     Task:
-    1. Identify the likely soil type, color, texture, and grain characteristics.
-    2. Estimate the likely geographical region or specific location type.
-    3. Generate specific approximate coordinates (latitude, longitude) for a representative location.
-    4. **CRITICAL**: Identify 5 REAL-WORLD LOCATIONS (Global or Regional) where this specific sand/soil type is highly abundant and famous.
-    5. List "5 Most Important Facts" about this soil type (strictly 5 lines).
-    6. Generate a "Detailed Analysis".
+    1. **Soil Identification**: Identify the specific soil type, color (Munsell approximation if possible), texture class (USDA), and visible grain characteristics (angularity, sphericity, sorting).
+    2. **Geographical Estimation**: Estimate the most likely geological environment (e.g., fluvial, aeolian, marine, glacial) and a specific real-world region where this sample might originate.
+    3. **Coordinates**: Provide specific latitude/longitude for that estimated region.
+    4. **Famous Locations**: Identify 5 REAL-WORLD LOCATIONS (Global) known for exactly this type of sediment.
+    5. **Key Facts**: List "5 Most Important Scientific Facts" about this soil type (e.g., mineralogy, permeability, engineering use).
+    6. **Deep Analysis**: Write a detailed, multi-paragraph analysis covering:
+       - **Mineralogical Composition**: Likely minerals present (quartz, feldspar, heavy minerals, etc.).
+       - **Deposition Environment**: How it was formed (wind, water, ice).
+       - **Engineering & Agricultural Properties**: Suitability for construction or farming.
+       - **Geological History**: What the grains tell us about the source rock and transport distance.
+
+    **IMPORTANT FORMATTING RULES**:
+    - Do NOT use markdown bolding (like **text**), italics, or headers (#, ##).
+    - Do NOT use special delimiter characters like '|||', '%%', or '###'.
+    - Provide CLEAR, plain text output within the JSON values.
 
     Output Format:
-    Return pure JSON with the following structure (no markdown code blocks):
+    Return pure JSON with the following structure:
     {
-      "soilType": "Identified soil type",
-      "estimatedLocation": "Name of the estimated location/region",
-      "coordinates": { "lat": 12.34, "lng": 56.78 },
+      "soilType": "Specific Soil Name",
+      "estimatedLocation": "Name of Region",
+      "coordinates": { "lat": 0.0, "lng": 0.0 },
       "likelyLocations": [
-        {"name": "Location Name 1", "coordinates": {"lat": 0, "lng": 0}},
-        {"name": "Location Name 2", "coordinates": {"lat": 0, "lng": 0}},
-        {"name": "Location Name 3", "coordinates": {"lat": 0, "lng": 0}},
-        {"name": "Location Name 4", "coordinates": {"lat": 0, "lng": 0}},
-        {"name": "Location Name 5", "coordinates": {"lat": 0, "lng": 0}}
+        {"name": "Location 1", "coordinates": {"lat": 0, "lng": 0}},
+        {"name": "Location 2", "coordinates": {"lat": 0, "lng": 0}},
+        {"name": "Location 3", "coordinates": {"lat": 0, "lng": 0}},
+        {"name": "Location 4", "coordinates": {"lat": 0, "lng": 0}},
+        {"name": "Location 5", "coordinates": {"lat": 0, "lng": 0}}
       ],
-      "keyFeatures": "1. Fact one...\n2. Fact two...\n3. Fact three...\n4. Fact four...\n5. Fact five...",
-      "analysisText": "Detailed textual analysis..."
+      "keyFeatures": "1. Fact 1\n2. Fact 2\n3. Fact 3\n4. Fact 4\n5. Fact 5",
+      "analysisText": "Parargraph 1...\n\nParagraph 2...\n\nParagraph 3..."
     }`;
 
     // Call Gemini with failover
@@ -473,19 +483,19 @@ app.post('/api/analyze', async (req, res) => {
         ]
       }],
       generationConfig: {
-        temperature: 0.3, // Lower temperature for more structured JSON
-        maxOutputTokens: 2000,
+        temperature: 0.4, // Slightly higher for more creative detail, but still structured
+        maxOutputTokens: 3000,
       }
     };
 
-    let outputText = `**Most Important Soil Features**
+    let outputText = `Most Important Soil Features
 1. Grain Size & Texture: Determines water retention and drainage capabilities essential for agriculture and construction.
 2. Mineral Composition: Indicates the geological origin (e.g., quartz, feldspar) and chemical stability.
 3. pH & Fertility: Chemical properties that dictate suitability for different types of vegetation or crops.
 4. Permeability & Porosity: Critical for groundwater movement and foundation stability in engineering.
 5. Regional Significance: Reflects the local sedimentary environment and climatic history of the area.
 
-**Detailed Analysis**
+Detailed Analysis
 (Automated analysis could not be completed at this time. Please retry for live AI insights.)`;
     let estimatedLocation = null;
     let estimatedCoordinates = null;
@@ -515,19 +525,32 @@ app.post('/api/analyze', async (req, res) => {
           likelyLocations = parsed.likelyLocations || [];
 
           // Construct the final details text from the structured JSON
-          // User requested "Most Important Features" and "More Content" and "Remove #"
           const features = parsed.keyFeatures || 'Feature analysis pending.';
           const mainText = parsed.analysisText || parsed.details || 'Analysis pending.';
 
-          outputText = `**Most Important Features**\n${features}\n\n**Detailed Analysis**\n${mainText}`;
+          outputText = `Most Important Features\n${features}\n\nDetailed Analysis\n${mainText}`;
 
-          // Final cleanup of any lingering markdown headers just in case
-          outputText = outputText.replace(/#{1,6}\s?/g, '').trim();
+          // Aggressive cleaning of unwanted markdown artifacts as requested
+          outputText = outputText
+            .replace(/\*\*/g, '')   // Remove bold **
+            .replace(/###/g, '')    // Remove ###
+            .replace(/\|\|\|/g, '') // Remove |||
+            .replace(/%%/g, '')     // Remove %%
+            .replace(/#{1,6}\s?/g, '') // Remove headers
+            .trim();
 
         } catch (e) {
           console.log("Failed to parse JSON from Gemini, using raw text", e);
-          // If JSON parse fails, attempt to strip potential raw formatting
-          outputText = candidate.replace(/```json/gi, '').replace(/```/g, '').replace(/[\{\}]/g, '').trim();
+          // If JSON parse fails, attempt to strip potential raw formatting and special chars
+          outputText = candidate
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
+            .replace(/[\{\}]/g, '')
+            .replace(/\*\*/g, '')
+            .replace(/###/g, '')
+            .replace(/\|\|\|/g, '')
+            .replace(/%%/g, '')
+            .trim();
         }
       }
     } catch (apiErr) {

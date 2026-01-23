@@ -102,7 +102,12 @@ const VoiceAssistant = () => {
             speak(botResponse);
         } catch (err) {
             console.error(err);
-            const errorMsg = "Sorry, I'm having trouble connecting to the server.";
+            let errorMsg = "Sorry, I'm having trouble connecting to the server.";
+
+            if (err.response && err.response.data && err.response.data.error) {
+                errorMsg = `Server Error: ${err.response.data.error}`;
+            }
+
             setMessages(prev => [...prev, { role: 'bot', text: errorMsg }]);
             speak(errorMsg);
         }
