@@ -39,6 +39,7 @@ const Admin = () => {
   const [editDashboard, setEditDashboard] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
   const [selectedAnalysis, setSelectedAnalysis] = useState(null);
+  const [queries, setQueries] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,6 +66,13 @@ const Admin = () => {
 
         if (locationsFromAnalyses.length > 0) {
           setLocationSoils(locationsFromAnalyses);
+        }
+
+        // Fetch user queries
+        const queriesResponse = await fetch('/api/queries/all');
+        if (queriesResponse.ok) {
+          const queriesData = await queriesResponse.json();
+          setQueries(queriesData.queries || []);
         }
       } catch (err) {
         console.error("Admin fetch error:", err);
@@ -461,6 +469,115 @@ const Admin = () => {
     </div>
   );
 
+  const renderQueries = () => {
+    const handleQueryStatus = (queryId, newStatus) => {
+      setQueries(queries.map(q =>
+        q.id === queryId ? { ...q, status: newStatus } : q
+      ));
+    };
+
+    const deleteQuery = (queryId) => {
+      if (window.confirm('Are you sure you want to delete this query?')) {
+        setQueries(queries.filter(q => q.id !== queryId));
+      }
+    };
+
+    return (
+      <div className="admin-queries">
+        <div className="section-header">
+          <h2>User Queries</h2>
+          <div className="query-stats">
+            <span className="stat-badge">Total: {queries.length}</span>
+            <span className="stat-badge pending">Pending: {queries.filter(q => q.status === 'Pending').length}</span>
+            <span className="stat-badge resolved">Resolved: {queries.filter(q => q.status === 'Resolved').length}</span>
+          </div>
+        </div>
+
+        <div className="queries-table">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Subject</th>
+                <th>Query</th>
+                <th>Timestamp</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {queries.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                    No queries submitted yet
+                  </td>
+                </tr>
+              ) : (
+                queries.map(query => (
+                  <motion.tr
+                    key={query.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <td>{query.userName}</td>
+                    <td>{query.userEmail}</td>
+                    <td>
+                      <strong>{query.subject}</strong>
+                    </td>
+                    <td>
+                      <div style={{
+                        maxWidth: '300px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {query.query}
+                      </div>
+                    </td>
+                    <td>{new Date(query.timestamp).toLocaleString()}</td>
+                    <td>
+                      <select
+                        value={query.status || 'Pending'}
+                        onChange={(e) => handleQueryStatus(query.id, e.target.value)}
+                        className={`status-select ${(query.status || 'Pending').toLowerCase()}`}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                      </select>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="btn-icon"
+                          title="View Full Query"
+                          onClick={() => {
+                            alert(`Subject: ${query.subject}\n\nQuery:\n${query.query}\n\nFrom: ${query.userName} (${query.userEmail})\nDate: ${new Date(query.timestamp).toLocaleString()}`);
+                          }}
+                        >
+                          👁️
+                        </button>
+                        <button
+                          className="btn-icon delete"
+                          onClick={() => deleteQuery(query.id)}
+                          title="Delete Query"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   const renderSettings = () => (
     <div className="admin-settings">
       <div className="section-header">
@@ -588,6 +705,12 @@ const Admin = () => {
           📈 Analytics
         </button>
         <button
+          className={`tab ${activeTab === 'queries' ? 'active' : ''}`}
+          onClick={() => setActiveTab('queries')}
+        >
+          💬 Queries
+        </button>
+        <button
           className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveTab('settings')}
         >
@@ -599,6 +722,7 @@ const Admin = () => {
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'users' && renderUsers()}
         {activeTab === 'analytics' && renderAnalytics()}
+        {activeTab === 'queries' && renderQueries()}
         {activeTab === 'settings' && renderSettings()}
         {selectedAnalysis && (
           <div className="modal-overlay" style={{

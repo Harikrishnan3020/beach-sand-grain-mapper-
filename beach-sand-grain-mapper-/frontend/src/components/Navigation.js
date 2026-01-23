@@ -10,7 +10,8 @@ const Navigation = ({ onLogout }) => {
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/upload', label: 'Upload Image', icon: '📤' },
     { path: '/camera', label: 'Live Camera', icon: '📷' },
-    { path: '/results', label: 'Results', icon: '📋' }
+    { path: '/results', label: 'Results', icon: '📋' },
+    { path: '/query', label: 'Ask Query', icon: '💬' }
   ];
 
   return (

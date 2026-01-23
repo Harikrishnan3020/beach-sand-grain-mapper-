@@ -17,14 +17,17 @@ const DB_FILE = path.join(__dirname, 'data.json');
 function loadData() {
   try {
     if (!fs.existsSync(DB_FILE)) {
-      const initial = { users: [], activities: [] };
+      const initial = { users: [], activities: [], queries: [] };
       fs.writeFileSync(DB_FILE, JSON.stringify(initial));
       return initial;
     }
-    return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    // Ensure queries array exists
+    if (!data.queries) data.queries = [];
+    return data;
   } catch (err) {
     console.error("Error loading data:", err);
-    return { users: [], activities: [] };
+    return { users: [], activities: [], queries: [] };
   }
 }
 
@@ -127,6 +130,50 @@ app.get('/api/admin/data', (req, res) => {
     systemStats: stats
   });
 });
+
+// POST /api/queries/submit - Submit a user query
+app.post('/api/queries/submit', (req, res) => {
+  try {
+    const { userId, userName, userEmail, subject, query, timestamp } = req.body;
+
+    if (!subject || !query) {
+      return res.status(400).json({ error: 'Subject and query are required' });
+    }
+
+    const db = loadData();
+
+    const newQuery = {
+      id: Date.now(),
+      userId: userId || 'guest',
+      userName: userName || 'Guest User',
+      userEmail: userEmail || 'N/A',
+      subject: subject.trim(),
+      query: query.trim(),
+      timestamp: timestamp || new Date().toISOString(),
+      status: 'Pending'
+    };
+
+    db.queries.push(newQuery);
+    saveData(db);
+
+    res.json({ status: 'success', queryId: newQuery.id });
+  } catch (err) {
+    console.error('Error submitting query:', err);
+    res.status(500).json({ error: 'Failed to submit query' });
+  }
+});
+
+// GET /api/queries/all - Get all queries (for admin)
+app.get('/api/queries/all', (req, res) => {
+  try {
+    const db = loadData();
+    res.json({ queries: db.queries || [] });
+  } catch (err) {
+    console.error('Error fetching queries:', err);
+    res.status(500).json({ error: 'Failed to fetch queries' });
+  }
+});
+
 
 
 // Collect and deduplicate API keys

@@ -9,6 +9,7 @@ import Navigation from './components/Navigation';
 import VoiceAssistant from './components/VoiceAssistant';
 import Admin from './components/Admin';
 import AdminLogin from './components/AdminLogin';
+import UserQuery from './components/UserQuery';
 import './App.css';
 
 function App() {
@@ -77,6 +78,10 @@ function App() {
                         <Route
                           path="/results"
                           element={<AnalysisResults data={analysisData} user={user} />}
+                        />
+                        <Route
+                          path="/query"
+                          element={<UserQuery user={user} />}
                         />
                         <Route path="*" element={<Navigate to="/" replace />} />
                       </Routes>

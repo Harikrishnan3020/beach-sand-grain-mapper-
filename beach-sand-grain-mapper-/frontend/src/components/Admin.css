@@ -1,4 +1,3 @@
-
 .admin-panel {
   padding: 2rem;
   max-width: 1400px;
@@ -184,19 +183,22 @@
   font-size: 1.8rem;
 }
 
-.users-table, .analytics-table {
+.users-table,
+.analytics-table {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.users-table table, .analytics-table table {
+.users-table table,
+.analytics-table table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.users-table th, .analytics-table th {
+.users-table th,
+.analytics-table th {
   background: rgba(255, 255, 255, 0.2);
   padding: 1rem;
   text-align: left;
@@ -204,7 +206,8 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.users-table td, .analytics-table td {
+.users-table td,
+.analytics-table td {
   padding: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -227,7 +230,9 @@
   font-size: 0.9rem;
 }
 
-.role-badge, .status-badge, .type-badge {
+.role-badge,
+.status-badge,
+.type-badge {
   padding: 0.3rem 0.8rem;
   border-radius: 15px;
   font-size: 0.8rem;
@@ -250,12 +255,14 @@
   color: #9c27b0;
 }
 
-.status-badge.active, .status-badge.completed {
+.status-badge.active,
+.status-badge.completed {
   background: rgba(76, 175, 80, 0.3);
   color: #4caf50;
 }
 
-.status-badge.inactive, .status-badge.failed {
+.status-badge.inactive,
+.status-badge.failed {
   background: rgba(244, 67, 54, 0.3);
   color: #f44336;
 }
@@ -576,6 +583,87 @@
   font-size: 1.2rem;
 }
 
+/* Queries Styles */
+.admin-queries {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.query-stats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.query-stats .stat-badge {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.query-stats .stat-badge.pending {
+  background: rgba(255, 193, 7, 0.3);
+  color: #ffc107;
+}
+
+.query-stats .stat-badge.resolved {
+  background: rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.queries-table {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.queries-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.queries-table th {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.queries-table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-select {
+  padding: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.status-select.pending {
+  background: rgba(255, 193, 7, 0.3);
+  color: #ffc107;
+}
+
+.status-select.resolved {
+  background: rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.status-select option {
+  background: #333;
+  color: white;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .admin-panel {
@@ -612,7 +700,8 @@
     flex-direction: column;
   }
 
-  .users-table, .analytics-table {
+  .users-table,
+  .analytics-table {
     overflow-x: auto;
   }
 
