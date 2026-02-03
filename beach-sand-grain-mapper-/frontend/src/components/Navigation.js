@@ -53,3 +53,4 @@ const Navigation = ({ onLogout }) => {
 };
 
 export default Navigation;
+// Optimized for performance

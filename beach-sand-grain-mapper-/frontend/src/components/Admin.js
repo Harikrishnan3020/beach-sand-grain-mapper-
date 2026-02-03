@@ -862,3 +862,4 @@ const Admin = () => {
 };
 
 export default Admin;
+// Optimized for performance

@@ -6,8 +6,7 @@ import './ImageUpload.css';
 const ImageUpload = ({ setAnalysisData, user }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [locationText, setLocationText] = useState('');
-  const [soilType, setSoilType] = useState('');
+  // Variables removed as per request
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
@@ -55,8 +54,8 @@ const ImageUpload = ({ setAnalysisData, user }) => {
         body: JSON.stringify({
           image: preview,
           filename: selectedFile.name,
-          location: locationText || null,
-          soilType: soilType || null,
+          location: null,
+          soilType: null,
         }),
       });
 
@@ -78,8 +77,8 @@ const ImageUpload = ({ setAnalysisData, user }) => {
               type: 'Upload',
               grains: analysisResult.totalGrains || 0,
               details: {
-                location: analysisResult.location || locationText,
-                soilType: analysisResult.soilType || soilType,
+                location: analysisResult.location || null,
+                soilType: analysisResult.soilType || null,
                 coordinates: analysisResult.coordinates,
                 image: preview, // Storing full image for admin review (WARNING: Large payload)
                 grainSizes: analysisResult.grainSizes,
@@ -195,40 +194,6 @@ const ImageUpload = ({ setAnalysisData, user }) => {
                   </div>
                 </div>
 
-                <div className="location-input">
-                  <label>Location (optional):</label>
-                  <input type="text" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="e.g., 36.7783,-119.4179 or Playa del Rey, CA" />
-                </div>
-                <div className="location-input">
-                  <label>Soil Type (optional):</label>
-                  <input list="soil-presets" type="text" value={soilType} onChange={(e) => setSoilType(e.target.value)} placeholder="e.g., red, black, grey, desert, green" />
-                  <datalist id="soil-presets">
-                    <option value="red" />
-                    <option value="black" />
-                    <option value="grey" />
-                    <option value="desert" />
-                    <option value="green" />
-                    <option value="lateritic" />
-                    <option value="regur" />
-                    <option value="loam" />
-                    <option value="clay" />
-                    <option value="silt" />
-                    <option value="peat" />
-                    <option value="sandy" />
-                    <option value="silty" />
-                    <option value="gravelly" />
-                    <option value="volcanic" />
-                    <option value="saline" />
-                    <option value="alluvial" />
-                    <option value="coastal" />
-                    <option value="riverine" />
-                    <option value="dune" />
-                    <option value="loess" />
-                    <option value="ochre" />
-                  </datalist>
-                  <small>Tip: choose from presets or type a custom soil name.</small>
-                </div>
-
                 <div className="preview-actions">
                   <button
                     className="btn btn-secondary"
@@ -299,3 +264,4 @@ const ImageUpload = ({ setAnalysisData, user }) => {
 };
 
 export default ImageUpload;
+// Optimized for performance

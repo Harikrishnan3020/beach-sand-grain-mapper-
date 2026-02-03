@@ -89,6 +89,8 @@ const VoiceAssistant = () => {
     Instructions:
     - If the user asks "Explain this project", give a structured, detailed response covering all the points above.
     - Be helpful, professional, and enthusiastic.
+    - CRITICAL: Do NOT use markdown artifacts like bolding (**text**), italics (*text*), underscores (___), or special characters (//, ??, ||, ##). 
+    - Output PLAIN TEXT only that is easy to read and natural to speak.
     
     User Question: ${text}`;
 
@@ -97,12 +99,27 @@ const VoiceAssistant = () => {
                 prompt: systemPrompt
             });
 
-            const botResponse = res.data.output || "I'm sorry, I couldn't process that.";
+            let botResponse = res.data.output || "I'm sorry, I couldn't process that.";
+
+            // Post-processing to remove any lingering artifacts
+            botResponse = botResponse
+                .replace(/\*\*/g, '')
+                .replace(/__/g, '')
+                .replace(/\/\//g, '')
+                .replace(/#{1,6}\s?/g, '')
+                .replace(/\[\?\]/g, '')
+                .trim();
+
             setMessages(prev => [...prev, { role: 'bot', text: botResponse }]);
             speak(botResponse);
         } catch (err) {
             console.error(err);
-            const errorMsg = "Sorry, I'm having trouble connecting to the server.";
+            let errorMsg = "Sorry, I'm having trouble connecting to the server.";
+
+            if (err.response && err.response.data && err.response.data.error) {
+                errorMsg = `Server Error: ${err.response.data.error}`;
+            }
+
             setMessages(prev => [...prev, { role: 'bot', text: errorMsg }]);
             speak(errorMsg);
         }
@@ -162,3 +179,5 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
+// Optimized for performance

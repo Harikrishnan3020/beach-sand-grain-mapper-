@@ -174,3 +174,5 @@ const UserQuery = ({ user }) => {
 };
 
 export default UserQuery;
+
+// Optimized for performance

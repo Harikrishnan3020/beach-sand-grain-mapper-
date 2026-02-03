@@ -13,7 +13,9 @@ const AnalysisResults = ({ data }) => {
   const [detailsText, setDetailsText] = useState(data?.details || '');
   const [generating, setGenerating] = useState(false);
   const [coordinates, setCoordinates] = useState(null);
+
   const [geocoding, setGeocoding] = useState(false);
+  const [showDetails, setShowDetails] = useState(true);
 
   useEffect(() => {
     // Priority 1: Direct coordinates from backend analysis
@@ -242,7 +244,7 @@ const AnalysisResults = ({ data }) => {
     const soilDetails = d.soilDetails || '';
 
     const reportLines = [];
-    reportLines.push('**Summary**');
+    reportLines.push('SUMMARY');
     reportLines.push(`- This detailed report provides a comprehensive analysis of the sand grain sample based on image processing and geological inferences.`);
     reportLines.push(`- Key findings include average grain size of ${avg || 'N/A'} µm (${sizeClass}), ${sorting.toLowerCase()} sorting, and ${soilType} soil type.`);
     reportLines.push(`- The analysis covers grain size, shape, soil type, mineralogy, microbial possibilities, depositional environment, and application suitability.`);
@@ -250,7 +252,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push(`- Report structure follows 10 sections with 5 key points each for detailed insights.`);
     reportLines.push('');
 
-    reportLines.push('**1. Sample Overview**');
+    reportLines.push('1. SAMPLE OVERVIEW');
     reportLines.push(`- Method: Camera/image-based detection and automated grain analysis.`);
     reportLines.push(`- Confidence: Moderate — image-based inferences; laboratory testing recommended for high-stakes decisions.`);
     reportLines.push(`- Sample quality: ${d.quality || 'Good'} based on image clarity and grain visibility.`);
@@ -258,7 +260,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push(`- Location context: ${d.location || 'Not specified'} influencing environmental interpretations.`);
     reportLines.push('');
 
-    reportLines.push('**2. Grain Size Analysis**');
+    reportLines.push('2. GRAIN SIZE ANALYSIS');
     reportLines.push(`- Average grain size: ${avg || 'Not measured'} µm (${sizeClass}).`);
     reportLines.push(`- Size distribution buckets: ${labels}.`);
     reportLines.push(`- Grain counts: ${counts}.`);
@@ -266,7 +268,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push(`- Implications: ${sizeClass} grains and ${sorting.toLowerCase()} sorting indicate ${sizeClass === 'Very fine' ? 'low permeability and potential for cohesion' : 'moderate to high permeability suitable for drainage'}.`);
     reportLines.push('');
 
-    reportLines.push('**3. Grain Shape & Texture**');
+    reportLines.push('3. GRAIN SHAPE & TEXTURE');
     reportLines.push(`- Observed angularity: ${roundness}.`);
     reportLines.push('- Surface texture reflects transport history: smoother surfaces indicate longer transport distances.');
     reportLines.push('- Angular grains suggest nearby source or limited transport, affecting sediment maturity.');
@@ -274,7 +276,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push('- Texture analysis helps infer depositional processes and sediment source regions.');
     reportLines.push('');
 
-    reportLines.push('**4. Soil Type Identification**');
+    reportLines.push('4. SOIL TYPE IDENTIFICATION');
     reportLines.push(`- Identified soil type: ${soilType}${soilDetails ? ' — ' + soilDetails : ''}.`);
     reportLines.push('- Physical characteristics: bulk color, drainage, and compaction inferred from image properties.');
     reportLines.push('- Soil classification based on grain size distribution and visual texture assessment.');
@@ -282,7 +284,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push('- Compaction behavior influenced by angularity and mineral composition.');
     reportLines.push('');
 
-    reportLines.push('**5. Mineralogical Composition**');
+    reportLines.push('5. MINERALOGICAL COMPOSITION');
     reportLines.push(`- Major inferred minerals: ${minerals}.`);
     reportLines.push('- Trace minerals: small amounts of heavy minerals or accessory phases may be present.');
     reportLines.push('- Quartz dominance indicates stable, resistant mineral assemblage typical of mature sediments.');
@@ -290,7 +292,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push('- Iron oxides contribute to soil color and may indicate oxidizing conditions.');
     reportLines.push('');
 
-    reportLines.push('**6. Bacterial & Microbial Possibility (Inference-Based)**');
+    reportLines.push('6. BACTERIAL & MICROBIAL POSSIBILITY (INFERENCE-BASED)');
     reportLines.push('- Inferred microbial presence: Not directly measurable from image; moisture-retentive soils may support activity.');
     reportLines.push('- Organic-rich or fine-grained soils provide better habitat for microbial communities.');
     reportLines.push('- Bacterial activity can influence soil structure and engineering properties.');
@@ -298,7 +300,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push('- Inference only: direct testing required for accurate microbial assessment.');
     reportLines.push('');
 
-    reportLines.push('**7. Depositional Environment Interpretation**');
+    reportLines.push('7. DEPOSITIONAL ENVIRONMENT INTERPRETATION');
     reportLines.push('- Likely depositional environment: inferred from grain size, sorting, and roundness characteristics.');
     reportLines.push('- Well-sorted rounded sands suggest aeolian (wind) or beach depositional settings.');
     reportLines.push('- Mixed sizes and angularity indicate fluvial (river) or near-source depositional environments.');
@@ -306,7 +308,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push('- Roundness provides clues about transport distance and sediment maturity.');
     reportLines.push('');
 
-    reportLines.push('**8. Application-Based Suitability**');
+    reportLines.push('8. APPLICATION-BASED SUITABILITY');
     reportLines.push('- Coastal engineering: evaluate erosion susceptibility and beach nourishment suitability.');
     reportLines.push('- Construction: note bearing capacity concerns for fine, organic, or silty soils.');
     reportLines.push('- Sandy or gravelly soils perform better for drainage and foundation stability.');
@@ -314,7 +316,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push('- Agricultural suitability: assess drainage and nutrient retention based on soil type.');
     reportLines.push('');
 
-    reportLines.push('**9. Limitations & Assumptions**');
+    reportLines.push('9. LIMITATIONS & ASSUMPTIONS');
     reportLines.push('- This report is image-based; laboratory testing required for detailed grain mineralogy.');
     reportLines.push('- Plasticity, moisture content, and in-situ strength cannot be determined from images.');
     reportLines.push('- Where values were missing, reasonable geological estimates were used and noted.');
@@ -322,7 +324,7 @@ const AnalysisResults = ({ data }) => {
     reportLines.push('- Assumptions are clearly stated to maintain transparency in interpretations.');
     reportLines.push('');
 
-    reportLines.push('**10. Conclusion**');
+    reportLines.push('10. CONCLUSION');
     reportLines.push('- Summary: image-derived analysis indicates ' + (soilType !== 'Unspecified' ? soilType + ' characteristics' : 'a sand-dominated sample') + ' with average size ' + (avg || 'N/A') + ' µm and ' + sorting.toLowerCase() + '.');
     reportLines.push('- Practical significance: recommend lab grain-size analysis, Atterberg limits for fines.');
     reportLines.push('- Mineralogical testing advised for construction or remediation decisions.');
@@ -347,17 +349,24 @@ const AnalysisResults = ({ data }) => {
     };
 
     for (let i = 0; i < lines.length; i++) {
-      const raw = lines[i].trim();
+      const raw = lines[i].trim()
+        .replace(/\*\*/g, '')
+        .replace(/##/g, '')
+        .replace(/__/g, '');
+
       if (!raw) {
         flushList();
         continue;
       }
 
-      // Headings written as **N. Title** or **Title**
-      const headingMatch = raw.match(/^\*\*(.+)\*\*/);
-      if (headingMatch) {
+      // UPPERCASE lines or numbered lines as headings
+      // Simple heuristic: if line starts with Number. and is short, it's a heading
+      // Or if it matches our known structure
+      const isHeading = raw.match(/^\d+\.\s+[A-Za-z\s&]+$/) || raw === 'Summary' || raw === 'SUMMARY' || raw.match(/^[A-Z\s]+$/);
+
+      if (isHeading && raw.length < 50) {
         flushList();
-        nodes.push(React.createElement('h3', { key: nodes.length }, headingMatch[1].trim()));
+        nodes.push(React.createElement('h3', { key: nodes.length }, raw.trim()));
         continue;
       }
 
@@ -399,6 +408,35 @@ const AnalysisResults = ({ data }) => {
       </div>
 
       <div id="analysis-content" className="analysis-content">
+        {data.hasHazard && (
+          <motion.div
+            className="emergency-alert"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, type: 'spring' }}
+            style={{
+              backgroundColor: '#ff4d4d',
+              color: 'white',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              marginBottom: '2rem',
+              border: '2px solid #ff0000',
+              boxShadow: '0 4px 15px rgba(255, 0, 0, 0.3)',
+              textAlign: 'center'
+            }}
+          >
+            <h2 style={{ fontSize: '1.8rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+              ⚠️ EMERGENCY ALERT ⚠️
+            </h2>
+            <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
+              {data.emergencyMessage || "HAZARDOUS OBJECT DETECTED IN SAMPLE"}
+            </p>
+            <p style={{ marginTop: '0.5rem' }}>
+              Please handle this sample with extreme caution.
+            </p>
+          </motion.div>
+        )}
+
         {data.image && (
           <motion.div
             className="image-section"
@@ -406,7 +444,7 @@ const AnalysisResults = ({ data }) => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <h2>Analyzed Image</h2>
+            <h2>Analyzed Sample</h2>
             <img src={data.image} alt="Analyzed sand sample" className="analyzed-image" />
           </motion.div>
         )}
@@ -417,6 +455,53 @@ const AnalysisResults = ({ data }) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
+          {/* Quick Summary Card */}
+          <div className="quick-summary-card" style={{
+            backgroundColor: '#2d3748',
+            padding: '20px',
+            borderRadius: '12px',
+            marginBottom: '20px',
+            border: '1px solid #4a5568'
+          }}>
+            <h2 style={{ borderBottom: '1px solid #718096', paddingBottom: '10px', marginBottom: '15px' }}>Quick Analysis Summary</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+              <div>
+                <h4 style={{ color: '#a0aec0', fontSize: '0.9rem', marginBottom: '5px' }}>Soil Type detected</h4>
+                <p style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#63b3ed' }}>{data.soilType || 'Unidentified'}</p>
+              </div>
+              <div>
+                <h4 style={{ color: '#a0aec0', fontSize: '0.9rem', marginBottom: '5px' }}>Safety Status</h4>
+                <p style={{
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  color: data.hasHazard ? '#fc8181' : '#68d391',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  {data.hasHazard ? '⚠️ DANGEROUS' : '✅ SAFE'}
+                </p>
+                {data.hasHazard ? (
+                  <span style={{ fontSize: '0.9rem', color: '#fc8181', display: 'block', marginTop: '4px' }}>
+                    Detected: {data.identifiedHazards || "Unknown Hazard"}
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.9rem', color: '#68d391', display: 'block', marginTop: '4px' }}>
+                    No hazardous items found
+                  </span>
+                )}
+              </div>
+              <div>
+                <h4 style={{ color: '#a0aec0', fontSize: '0.9rem', marginBottom: '5px' }}>Primary Purpose</h4>
+                <p style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#f6ad55' }}>{data.primaryPurpose || 'General Use'}</p>
+              </div>
+              <div>
+                <h4 style={{ color: '#a0aec0', fontSize: '0.9rem', marginBottom: '5px' }}>Primary Location</h4>
+                <p style={{ fontSize: '1rem', color: '#e2e8f0' }}>{data.location || data.estimatedLocation || 'Global'}</p>
+              </div>
+            </div>
+          </div>
+
           <h2>Statistical Summary</h2>
           <div className="stats-grid">
             <div className="stat-card">
@@ -436,21 +521,35 @@ const AnalysisResults = ({ data }) => {
               <p className="stat-value">{data.quality || 'Good'}</p>
             </div>
           </div>
-          <div className="location-display">
-            <h3>Regional & Sample Location</h3>
+        </motion.div>
+
+        <motion.div
+          className="map-section"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          style={{ marginTop: '30px', marginBottom: '30px' }}
+        >
+          <h2>Geographical Context</h2>
+          <div className="location-display" style={{ width: '100%' }}>
             {data.location ? (
-              <>
-                <p className="location-value">Sample: {data.location}</p>
+              <div style={{ marginBottom: '10px' }}>
+                <p className="location-value">Sample Origin: {data.location}</p>
                 {geocoding && <p>Geocoding location...</p>}
                 {!geocoding && !coordinates && <p>Sample location could not be pinpointed.</p>}
-              </>
+              </div>
             ) : (
-              <p className="location-value">Regional Hub: PSGR</p>
+              <p className="location-value" style={{ marginBottom: '10px' }}>Regional Hub: PSGR (Default)</p>
             )}
 
-            <div className="location-map">
+            <div className="location-map" style={{ height: '500px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #4a5568' }}>
               <Map locations={[
                 ...(coordinates ? [{ coordinates, location: data.location, soil: data.soilType || 'Unknown' }] : []),
+                ...(data.likelyLocations ? data.likelyLocations.map(l => ({
+                  coordinates: l.coordinates,
+                  location: l.name,
+                  soil: data.soilType || 'Likely Origin'
+                })) : []),
                 {
                   coordinates: { lat: 11.0247, lng: 76.9723 },
                   location: 'PSGR (Regional Hub)',
@@ -460,6 +559,7 @@ const AnalysisResults = ({ data }) => {
             </div>
           </div>
         </motion.div>
+
 
         <motion.div
           className="chart-section"
@@ -480,30 +580,67 @@ const AnalysisResults = ({ data }) => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
-            <h2>Detailed Analysis</h2>
-            <div className="details-content">
-              <div className="report-output">{renderReport(detailsText || data.details)}</div>
-              {data.soilType && (
-                <div className="soil-summary">
-                  <h4>Soil Type:</h4>
-                  <p><strong>{data.soilType}</strong></p>
-                  {data.soilDetails && (
-                    <>
-                      <h4>Soil Details:</h4>
-                      <p>{data.soilDetails}</p>
-                    </>
-                  )}
+            {/* Always show Key Features if available */}
+            {data.keyFeatures && (
+              <div className="key-features" style={{ backgroundColor: '#2d3748', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                <h3 style={{ color: '#f6ad55', marginBottom: '10px' }}>💡 Top 5 Scientific Facts</h3>
+                <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6' }}>
+                  {data.keyFeatures.split('\n').map((fact, i) => (
+                    <div key={i} style={{ marginBottom: '5px', display: 'flex', gap: '10px' }}>
+                      {fact.trim() && <span>• {fact.replace(/^\d+\.\s*/, '').trim()}</span>}
+                    </div>
+                  ))}
                 </div>
-              )}
-              <div style={{ marginTop: 12 }}>
-                <button className="generate-btn" onClick={generateDetailedReport} disabled={generating}>
-                  {generating ? 'Generating...' : 'Generate Detailed Report'}
-                </button>
-                <button className="export-btn" onClick={generatePDF} style={{ marginLeft: 12 }}>
-                  Export PDF
-                </button>
               </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h2>Detailed Report</h2>
+              <button
+                onClick={() => setShowDetails(!showDetails)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#4a5568',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                {showDetails ? 'Hide Details' : 'View Full Detailed Report'}
+              </button>
             </div>
+
+            {showDetails && (
+              <div className="details-content">
+                <div className="report-output">{renderReport(detailsText || data.details)}</div>
+
+                {data.soilType && (
+                  <div className="soil-summary">
+                    <h4>Soil Type:</h4>
+                    <p><strong>{data.soilType}</strong></p>
+                    {data.soilDetails && (
+                      <>
+                        <h4>Soil Details:</h4>
+                        <p>{data.soilDetails}</p>
+                      </>
+                    )}
+                  </div>
+                )}
+                <div style={{ marginTop: 12 }}>
+                  <button className="generate-btn" onClick={generateDetailedReport} disabled={generating}>
+                    {generating ? 'Generating...' : 'Generate Detailed Report'}
+                  </button>
+                  <button className="export-btn" onClick={generatePDF} style={{ marginLeft: 12 }}>
+                    Export PDF
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!showDetails && (
+              <p style={{ fontStyle: 'italic', color: '#a0aec0' }}>Click "View Full Detailed Report" to read the complete scientific analysis.</p>
+            )}
           </motion.div>
         )}
       </div>
@@ -512,3 +649,4 @@ const AnalysisResults = ({ data }) => {
 };
 
 export default AnalysisResults;
+// Optimized for performance

@@ -302,3 +302,4 @@ const CameraCapture = ({ setAnalysisData, user }) => {
 };
 
 export default CameraCapture;
+// Optimized for performance

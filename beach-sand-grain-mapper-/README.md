@@ -97,3 +97,5 @@ beach-sand-grain-mapper-/
 2.  **Analyze**: Click analysis to get detailed breakdown of soil type, location estimates, and key geological features.
 3.  **Voice Chat**: Use the voice feature to ask questions about the analysis or geology.
 4.  **Explore**: View the results on the interactive dashboard.
+
+<!-- Updated -->

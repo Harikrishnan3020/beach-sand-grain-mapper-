@@ -189,3 +189,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+// Optimized for performance

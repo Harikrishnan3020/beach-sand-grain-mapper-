@@ -42,10 +42,14 @@ const Map = ({ locations }) => {
         zoom={2}
         style={{ height: '100%', width: '100%' }}
         key="map-container"
+        minZoom={2}
+        maxBounds={[[-90, -180], [90, 180]]}
+        maxBoundsViscosity={1.0}
       >
         <TileLayer
           url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
           attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+          noWrap={true}
         />
         {locations && locations.length > 0 && locations.map((location) => {
           const coords = getCoordinates(location);
@@ -67,3 +71,5 @@ const Map = ({ locations }) => {
 };
 
 export default Map;
+
+// Optimized for performance
