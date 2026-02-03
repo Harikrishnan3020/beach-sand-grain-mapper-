@@ -650,3 +650,4 @@ const AnalysisResults = ({ data }) => {
 
 export default AnalysisResults;
 // Optimized for performance
+
