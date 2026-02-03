@@ -603,3 +603,4 @@ app.post('/api/analyze', async (req, res) => {
 app.listen(PORT, '127.0.0.1', () => console.log(`Backend proxy listening on 127.0.0.1:${PORT}`));
 
 // Optimized for performance
+
