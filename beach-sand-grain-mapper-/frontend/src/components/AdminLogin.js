@@ -144,3 +144,4 @@ const AdminLogin = ({ onLogin }) => {
 export default AdminLogin;
 
 // Optimized for performance
+
